@@ -19,6 +19,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout fork (Termux files)
+        uses: actions/checkout@v6
+        with:
+          path: fork
+
       - name: Checkout upstream memos
         uses: actions/checkout@v6
         with:
@@ -43,6 +48,12 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm release
+
+      - name: Apply Termux patches
+        working-directory: src
+        run: |
+          git apply ../fork/termux/android-argv-fix.patch
+          git diff --stat
 
       - name: Setup Go
         uses: actions/setup-go@v6
