@@ -1,8 +1,16 @@
 diff --git a/cmd/memos/main.go b/cmd/memos/main.go
-index 4e5c418..f7a1d60 100644
+index 4e5c418..f698d5e 100644
 --- a/cmd/memos/main.go
 +++ b/cmd/memos/main.go
-@@ -226,6 +226,16 @@ func printServerInfo(profile *profile.Profile, accessMode storepb.InstanceAccess
+@@ -5,6 +5,7 @@ import (
+ 	"fmt"
+ 	"log/slog"
+ 	"os"
++	"os/exec"
+ 	"os/signal"
+ 	"strings"
+ 	"syscall"
+@@ -226,6 +227,19 @@ func printServerInfo(profile *profile.Profile, accessMode storepb.InstanceAccess
  }
  
  func main() {
@@ -10,8 +18,11 @@ index 4e5c418..f7a1d60 100644
 +	// receives argv with the executable path duplicated as the first
 +	// argument, which Cobra rejects as an "unknown command". Drop the
 +	// duplicate when present (no-op on normal platforms).
++	// NOTE: do not compare against os.Executable() here — on Android it
++	// returns the linker path ("/apex/com.android.runtime/bin/linker64"),
++	// never the binary's own path. Resolve argv[0] through PATH instead.
 +	if len(os.Args) > 1 {
-+		if exe, err := os.Executable(); err == nil && os.Args[1] == exe {
++		if exe, err := exec.LookPath(os.Args[0]); err == nil && os.Args[1] == exe {
 +			os.Args = append(os.Args[:1], os.Args[2:]...)
 +		}
 +	}
