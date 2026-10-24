@@ -80,7 +80,8 @@ jobs:
           readelf -h memos | tee elf.txt
           grep -q "Type:.*DYN" elf.txt
           grep -q "Machine:.*AArch64" elf.txt
-          readelf -l memos | grep -q "interpreter /system/bin/linker64"
+          readelf -l memos | tee prog.txt
+          grep -q "/system/bin/linker64" prog.txt
           if readelf -d memos | grep -q "ld-linux"; then echo "glibc interp/NEEDED found"; exit 1; fi
           readelf -d memos
 
