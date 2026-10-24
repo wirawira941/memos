@@ -6,4 +6,5 @@
 - Hasil wajib: Type DYN, AArch64, INTERP /system/bin/linker64, NEEDED hanya bionic (gate readelf di CI + verifikasi unduh).
 - Frontend dibangun di CI: `pnpm install --frozen-lockfile` di web/ lalu `pnpm release` (vite build → server/frontend/dist).
 - Runtime: `memos --data ~/.memos --port 8081` (port default versi ini 8081; driver default sqlite).
-- Status: RELEASE v0.31.0-termux.1 LIVE (CI run 40057580769 success) — aset terverifikasi unduh: sha256 cocok, ELF DYN/AArch64/linker64, isi binary+LICENSE. MENUNGGU uji perangkat user (installer + smoke test).
+- Status: RELEASE **v0.31.0-termux.2** LIVE (CI run 40061289343, semua step hijau) — aset terverifikasi unduh: sha256 3fc7e553…, ELF DYN/AArch64/linker64. MENUNGGU uji perangkat ulang user.
+- TEMUAN PERANGKAT (.1, 2026-10-24): binary valid tapi Cobra menolak semua perintah: `unknown command "/data/data/com.termux/files/usr/bin/memos"` — linker64 Android menduplikasi path executable sebagai argv[1]. Diperbaiki di .2 oleh `termux/android-argv-fix.patch` (main() membuang argv[1] bila sama dengan os.Executable(); terbukti via simulasi execv argv-duplikat di binary amd64: tanpa patch error identik, dengan patch server boot + HTTP 200).
