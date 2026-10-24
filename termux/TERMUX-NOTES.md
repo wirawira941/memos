@@ -6,4 +6,4 @@
 - Hasil wajib: Type DYN, AArch64, INTERP /system/bin/linker64, NEEDED hanya bionic (gate readelf di CI + verifikasi unduh).
 - Frontend dibangun di CI: `pnpm install --frozen-lockfile` di web/ lalu `pnpm release` (vite build → server/frontend/dist).
 - Runtime: `memos --data ~/.memos --port 8081` (port default versi ini 8081; driver default sqlite).
-- Status: MENUNGGU proof build lokal + CI + uji perangkat user.
+- Status: RELEASE v0.31.0-termux.1 LIVE (CI run 40057580769 success) — aset terverifikasi unduh: sha256 cocok, ELF DYN/AArch64/linker64, isi binary+LICENSE. MENUNGGU uji perangkat user (installer + smoke test).
