@@ -1,0 +1,21 @@
+diff --git a/cmd/memos/main.go b/cmd/memos/main.go
+index 4e5c418..f7a1d60 100644
+--- a/cmd/memos/main.go
++++ b/cmd/memos/main.go
+@@ -226,6 +226,16 @@ func printServerInfo(profile *profile.Profile, accessMode storepb.InstanceAccess
+ }
+ 
+ func main() {
++	// Termux/Android: a PIE binary launched through /system/bin/linker64
++	// receives argv with the executable path duplicated as the first
++	// argument, which Cobra rejects as an "unknown command". Drop the
++	// duplicate when present (no-op on normal platforms).
++	if len(os.Args) > 1 {
++		if exe, err := os.Executable(); err == nil && os.Args[1] == exe {
++			os.Args = append(os.Args[:1], os.Args[2:]...)
++		}
++	}
++
+ 	if err := rootCmd.Execute(); err != nil {
+ 		slog.Error("memos failed", slog.String("error", err.Error()))
+ 		os.Exit(1)
