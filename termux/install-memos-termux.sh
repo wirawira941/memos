@@ -3,10 +3,10 @@
 # Source release: https://github.com/wirawira941/memos/releases
 set -e
 
-TAG="v0.31.0-termux.2"
+TAG="v0.31.0-termux.3"
 VER="0.31.0"
 ASSET="memos_${VER}_termux_arm64.tar.gz"
-SHA256="3fc7e553974132ba7c77523768c4d5fafd8d7324896e5e2f023f79c26a59e68e"
+SHA256="f7bf64e19bd97bc03323bf75a324bf178b1fbde0bd16666d86cbe9e9e112f3b6"
 URL="https://github.com/wirawira941/memos/releases/download/${TAG}/${ASSET}"
 
 if [ -z "$PREFIX" ]; then
@@ -50,12 +50,13 @@ if [ "${SKIP_SMOKE:-0}" != "1" ]; then
     if curl -fsS -o /dev/null "http://127.0.0.1:18081/"; then OK=1; break; fi
   done
   kill $PID 2>/dev/null || true
-  rm -rf "$TMPDATA"
   if [ "$OK" = "1" ]; then
+    rm -rf "$TMPDATA"
     echo "Smoke test LULUS: server menjawab di port 18081."
   else
     echo "Smoke test GAGAL: server tidak menjawab. Log server:" >&2
     cat "$TMPDATA/server.log" >&2 || true
+    rm -rf "$TMPDATA"
     exit 1
   fi
 fi
