@@ -1,0 +1,115 @@
+name: Build Termux (Android arm64, NDK bionic PIE)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Upstream usememos/memos ref to build"
+        default: "v0.31.0"
+        required: true
+      release_tag:
+        description: "Release tag to publish in this fork (empty = artifact only)"
+        default: "v0.31.0-termux.1"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout upstream memos
+        uses: actions/checkout@v6
+        with:
+          repository: usememos/memos
+          ref: ${{ inputs.source_ref }}
+          path: src
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          package_json_file: src/web/package.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: src/web/pnpm-lock.yaml
+
+      - name: Build frontend
+        working-directory: src/web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm release
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.27"
+          cache-dependency-path: src/go.sum
+
+      - name: Setup NDK
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28c
+
+      - name: Build Android arm64 binary (bionic PIE)
+        working-directory: src
+        env:
+          GOOS: android
+          GOARCH: arm64
+          CGO_ENABLED: "1"
+          CC: ${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+        run: |
+          VER="${{ inputs.source_ref }}"; VER="${VER#v}"
+          COMMIT="$(git rev-parse HEAD)"
+          go build \
+            -trimpath \
+            -tags netgo,osusergo \
+            -ldflags="-s -w -X github.com/usememos/memos/internal/version.Version=${VER} -X github.com/usememos/memos/internal/version.Commit=${COMMIT}" \
+            -o memos \
+            ./cmd/memos
+          ls -la memos
+
+      - name: ELF gate (must be bionic PIE)
+        working-directory: src
+        run: |
+          readelf -h memos | tee elf.txt
+          grep -q "Type:.*DYN" elf.txt
+          grep -q "Machine:.*AArch64" elf.txt
+          readelf -l memos | grep -q "interpreter /system/bin/linker64"
+          if readelf -d memos | grep -q "ld-linux"; then echo "glibc interp/NEEDED found"; exit 1; fi
+          readelf -d memos
+
+      - name: Package
+        working-directory: src
+        run: |
+          VER="${{ inputs.source_ref }}"; VER="${VER#v}"
+          mkdir -p pkg
+          cp memos LICENSE pkg/ 2>/dev/null || cp memos pkg/
+          tar -czf "memos_${VER}_termux_arm64.tar.gz" -C pkg .
+          sha256sum "memos_${VER}_termux_arm64.tar.gz" > "memos_${VER}_termux_arm64.tar.gz.sha256"
+          ls -la *.tar.gz*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: memos-termux-arm64
+          path: |
+            src/*.tar.gz
+            src/*.tar.gz.sha256
+
+      - name: Publish release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: src
+        run: |
+          gh release create "${{ inputs.release_tag }}" \
+            --repo "${{ github.repository }}" \
+            --title "memos ${{ inputs.source_ref }} for Termux (Android arm64)" \
+            --notes "Native Android arm64 (bionic PIE) build of usememos/memos ${{ inputs.source_ref }} for Termux. See the termux/ folder in this fork for the installer and notes." \
+            *.tar.gz *.tar.gz.sha256
